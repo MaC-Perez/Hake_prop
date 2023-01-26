@@ -1,8 +1,8 @@
 
 #Lee el archivo con datos de acustica
-mgacu <- read.csv("JuvMgGam/Acu93-2006.csv")
+mgacu <- read.csv("Acu93-2006.csv")
 #lee linea de costa 
-costa <- read.csv("JuvMgGam/costa.csv")
+costa <- read.csv("costa.csv")
 names(mgacu)
 
 #seleccionamos acada ano 
@@ -16,7 +16,7 @@ mgacu05 = mgacu[mgacu$Year==2005,,]
 mgacu06 = mgacu[mgacu$Year==2006,,]
 
 #Lee el archivo de lances de pesca con proporcion de juveniles
-mgjuv <- read.csv("JuvMgGam/Pjuv19972006.csv")
+mgjuv <- read.csv("Pjuv19972006.csv")
 
 #seleccionamos cada ano
 mgj97 <- mgjuv[mgjuv$Year==1997,,]

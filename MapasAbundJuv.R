@@ -1,16 +1,16 @@
 # MAPAS DE DISTRIBUCION DE JUVENILES (Presencia-Ausencia)
 #MAPAS DE DISTRIBUCION DE LA ABUNDANCIA DE JUVENILES
 #funcion de geofun: deg2km (al final del script)
-source("JuvMgGam/R/deg2km.R")
+source("R/deg2km.R")
 require(spatstat)
 require(sm)
 require(maptools)
-source("JuvMgGam/R/findlimits.fun.R")
+source("R/findlimits.fun.R")
 library(mgcv)
 library(MASS)
 library(PBSmapping)
 data(worldLLhigh)
-source("JuvMgGam/R/source_indicators.r")
+source("R/source_indicators.r")
 # Arreglos
 worldLLhigh2 <- worldLLhigh
 worldLLhigh2$X <- worldLLhigh2$X-360
@@ -18,11 +18,12 @@ clr <- PBSclr()
 names(clr)
 
 
-#Lee el archivo con se?al acustica
-mgacu <- read.csv("JuvMgGam/Acu93-2006.csv")
-costa <- read.csv("JuvMgGam/costa.csv")
+#Lee el archivo con senal acustica y archivo con linea de costa para plots
+mgacu <- read.csv("Acu93-2006.csv")
+costa <- read.csv("costa.csv")
 names(mgacu)
 
+#selecciona ano a ano para poder hacer cada analisis de forma anual
 mgacu97 = mgacu[mgacu$Year==1997,,]
 mgacu99 = mgacu[mgacu$Year==1999,,]
 mgacu00 = mgacu[mgacu$Year==2000,,]
@@ -33,8 +34,12 @@ mgacu05 = mgacu[mgacu$Year==2005,,]
 mgacu06 = mgacu[mgacu$Year==2006,,]
 
 #Lee el archivo de lances de pesca con proporcion de juveniles
-mgjuv <- read.csv("JuvMgGam/Pjuv19972006.csv")
+# aqui tenemos los datos de tallas (para separar adultos de juveniles) sexo, presencia/ausencia de juveniles (Pjuv), frecuencia, temp, salinidad, oxigeno, etc
 
+mgjuv <- read.csv("Pjuv19972006.csv")
+names(mgjuv)
+
+#selecciona ano a ano para poder hacer cada analisis de forma anual
 mgj97 <- mgjuv[mgjuv$Year==1997,,]
 mgj99 <- mgjuv[mgjuv$Year==1999,,]
 mgj00 <- mgjuv[mgjuv$Year==2000,,]
@@ -44,29 +49,36 @@ mgj04 <- mgjuv[mgjuv$Year==2004,,]
 mgj05 <- mgjuv[mgjuv$Year==2005,,]
 mgj06 <- mgjuv[mgjuv$Year==2006,,]
 
+#seleccionamos el ano de analisis de la serie historica
 yr <- "2006"
 datj <- mgj06
 dats <- mgacu06
 
-#GAM Models for proporcionof juveniles
+#GAM Models for presencia de juveniles (Pjuv)
 m1 <- gam(Pjuv~ s(Long,Lat)+s(Ppro),weights=frec,family=binomial,data=datj)
 summary(m1)
-plot(m1,select=2)
+plot(m1,select=1)
 points(datj$Long,datj$Lat,col=3)
 points(dats$Long,dats$Lat,col=5)
 
 plot(m1,select=2)
 
 gam.check(m1)
+
+#toma las predicciones de juveniles y calcula las de adulto en base a 1-Pjuv
 dats$Pjuv <- predict.gam(m1,dats,type="response")
 dats$Padul <- 1-dats$Pjuv
+#multiplica la presencia de adultos y juveniles por la senal acustica
 dats$Sajuv <- dats$Sa*dats$Pjuv
 dats$Saadul <- dats$Sa*dats$Padul
+
+#plotea adultos sobre juveniles para ver sobreposicion
 plot(dats$Lat,dats$Saadul)
 points(dats$Lat,dats$Sajuv,col=2)
+
 plot(dats$Lat,dats$Pjuv)
 
-## ANALISIS transformacion SAjuv
+## ANALISIS transformacion Senal Acustica juveniles (distrib normal)
 ytransf <- dats$Sajuv^0.15
 boxplot(ytransf)
 hist(ytransf,breaks=20,freq=F)
@@ -79,7 +91,11 @@ m2 <- gam(Sajuv^0.15~s(Long,Lat)+s(Ppro),data=dats,family=gaussian(link="identit
 gam.check(m2)
 summary(m2)
 plot(m2,select=1)
+points(datj$Long,datj$Lat,col=3)
+points(dats$Long,dats$Lat,col=5)
+
 plot(m2,select=2)
+
 m3 <- gam(Saadul^0.15~s(Long,Lat)+s(Ppro),data=dats,family=gaussian(link="identity"))
 summary(m3)
 plot(m3,select=2)
@@ -107,7 +123,7 @@ survey.lim <- findlimits.fun(dats, dist=10, plot="limits")
 #2006: survey.lim <- findlimits.fun(dats, dist=10, plot="limits")
 
 ## Lo primero es seleccionar con
-## que limites nos vamos a quedar, en este caso, por ejemplo las ·reas
+## que limites nos vamos a quedar, en este caso, por ejemplo las areas
 ## que no esten contenidas dentro de otras areas
 
 survey.lim <- survey.lim[c(1,3,4,5,8,9,10,11)]
@@ -151,7 +167,7 @@ points(predictive.grid$x[predictive.grid$Survey], predictive.grid$y[predictive.g
 modPpro <- gam(Ppro~s(Long,Lat),data=dats);summary(modPpro)
 predictive.grid$Ppro <- predict.gam(modPpro,predictive.grid)
 
-#Prediccion para el mapa de abundancia de Juveniles
+#Prediccion de densidad para el mapa de abundancia de Juveniles
 predictive.grid$EstSajuv <- predict.gam(m2,predictive.grid,type="response")
 predictive.grid$EstSajuv <- predictive.grid$EstSajuv^(1/0.15)
 predictive.grid$EstSajuv[!predictive.grid$Survey] <- NA
@@ -161,6 +177,8 @@ predictive.grid$EstSaadul[!predictive.grid$Survey] <- NA
 predictive.grid$EstPjuv <- predict.gam(m1,predictive.grid,type="response")
 predictive.grid$EstPjuv[!predictive.grid$Survey] <- NA
 (paste("predgrilla",yr,".csv",sep=""))
+
+#guarda la grila con las predicciones (repetir para cada ano)
 #write.csv(predictive.grid,paste("predgrilla",yr,".csv",sep=""))
 
 #Transformar los datos a una imagen
@@ -177,7 +195,7 @@ PrPjuv.im <- im(mat=PrPjuv.srf$z,xcol=PrPjuv.srf$x, yrow=PrPjuv.srf$y)
 
 image(PrJuv.im, col=terrain.colors(100), xlab="Longitude W", ylab="Latitude S")
 image(PrJuv.im, col=topo.colors(100), xlab="Longitude W", ylab="Latitude S",main=yr)
-image(Pr.im, col=gray(seq(1,0.1,l=100)), xlab="Longitude W", ylab="Latitude S")
+image(PrJuv.im, col=gray(seq(1,0.1,l=100)), xlab="Longitude W", ylab="Latitude S")
 
 image(PrAdul.im, col=terrain.colors(100), xlab="Longitude W", ylab="Latitude S")
 image(PrAdul.im, col=topo.colors(100), xlab="Longitude W", ylab="Latitude S",main=yr)
@@ -193,7 +211,7 @@ lines(costa$Long+.1,costa$Lat,lwd=2,col="black")
 points(dats$Long+.1,dats$Lat,pch=".",col=2)
 
 #Alternativa
-
+x11()
 par(mar=c(5,5,0.5,0.5)+0.5)
 plotMap(worldLLhigh2,col="brown",bg="darkblue",ylim=c(-42,-29),xlim=c(-76,-69),projection="LL",axes=F,xlab="",ylab="",cex.axis=1.2)
 axis(2,yaxp=c(-42,-29,5),las=1)
