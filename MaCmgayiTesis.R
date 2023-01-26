@@ -35,10 +35,12 @@ library(MASS)
 library(shape)
 library(Cardinal)
 
-# presencia/ausencia de juveniles con los datos de los lances de pesca 
+# presencia/ausencia de juveniles con los datos de los lances de pesca (historicos no un ano en particular)
 m0pres <- gam(Pjuv~s(Year,Lat)+s(Ppro),family=binomial,weights=frec,data=mgjuv)
 summary(m0pres)
+x11()
 plot(m0pres,select=1)
+plot(m0pres,select=2)
 
 #Grilla de prediccion
 yrs <- seq(1997,2006,length=200)
@@ -63,7 +65,7 @@ layout(matrix(1:2,nrow=1,ncol=2,byrow=T),widths=c(2,0.3))
 image(PrMgayi.srf,col=gradient.colors,axes=F)
 axis(2,col="black",cex.axis=1.2)
 axis(1,col="black",cex.axis=1.2);box(lwd=1)
-mtext(2,text="Latitude (?S)",line=3,cex=1.4)
+mtext(2,text="Latitude (S)",line=3,cex=1.4)
 mtext(1,text="Years",line=3,cex=1.4)
 emptyplot(main="")
 colorlegend(posx=c(0.2,0.3),posy=c(0.05,0.9),zlim=c(0,1),left=F,col=gradient.colors,digit = 1, dz = 0.2,main="")
@@ -76,7 +78,8 @@ dats <- mgacu00
 #GAM Models for proporcion of juveniles
 m1 <- gam(Pjuv~ s(Long,Lat)+s(Ppro),weights=frec,family=binomial,data=datj)
 summary(m1)
-plot(m1,select=2)
+x11()
+plot(m1,select=1)
 points(datj$Long,datj$Lat,col=3)
 points(dats$Long,dats$Lat,col=5)
 
@@ -180,7 +183,7 @@ termplot(m2.gl)
 ##### PARA EL CALCULO DE AREAS DE DISTRIBUCION DE JUVE > 0.5
 #Convierte grados a km
 #funcion de geofun: deg2km (al final del script)
-source("JuvMgGam/R/deg2km.R")
+source("R/deg2km.R")
 dats <- deg2km(dats)
 costa <- deg2km(costa)
 names(dats)
@@ -192,14 +195,14 @@ lines(costa$x,costa$y)
 require(spatstat)
 require(sm)
 require(maptools)
-source("JuvMgGam/R/findlimits.fun.R")
+source("R/findlimits.fun.R")
 
 spatstat.options(npixel=c(300,300))
 
 survey.lim <- findlimits.fun(dats, dist=10, plot="limits")
 ## Lo primero es seleccionar con
 ## que limites nos vamos a quedar, en este caso, por ejemplo las areas
-## 1 y 2
+## 
 
 survey.lim <- survey.lim[c(1,2,4,5,6,11,13,14,15)]
 
@@ -297,7 +300,7 @@ Area99<-sum(dats$Sea.area)
 Area99juv<-sum(dats$Sea.area[dats$PositiveJuv])
 Area99adul<-sum(dats$Sea.area[dats$PositiveAdul])
 
-### HASTA AQUI INDICES DE COBERTURA ESPACAL Proporcion Juv y Adul > 0.5
+### HASTA AQUI INDICES DE COBERTURA ESPACIAL Proporcion Juv y Adul > 0.5
 
 
 
@@ -364,9 +367,7 @@ mgacu99 <- dats
 
 #ANALISIS DE CAMBIOS EN LA DENSIDAD DE JUVENILES Y ADULTOS
 #setwd("/Users/luiscubillos/Rwork/MGayi/JuvMgGam/Todos")
-setwd("~/Documents/Tesis Pregrado/Todos")
 library(lattice)
-dir()
 mg97 <- read.csv("Todos/mgac1997.csv")
 mg99 <- read.csv("Todos/mgac1999.csv")
 mg00 <- read.csv("Todos/mgac2000.csv")
